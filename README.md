@@ -15,7 +15,7 @@ The implementation closely mirrors a real-world **analytics engineering** workfl
 
 ## Architecture
 
-
+```
 ┌──────────────────────────┐
 │  External API (CoinGecko)│
 └─────────────┬────────────┘
@@ -44,7 +44,7 @@ The implementation closely mirrors a real-world **analytics engineering** workfl
 ┌──────────────────────────┐
 │ Analytics / BI           │
 └──────────────────────────┘
-
+```
 
 
 ---
