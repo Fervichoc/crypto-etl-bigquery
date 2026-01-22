@@ -1,11 +1,21 @@
-📊 Crypto Data ELT MVP
-Overview
+# 📊 Crypto Data ELT MVP
 
-This project is a minimal end-to-end ELT pipeline built to demonstrate how external financial data can be ingested, transformed, and exposed for analytics in a production-style setup.
+## Overview
 
-The pipeline is designed with clear data layers, version-controlled SQL, and orchestration, closely mirroring a real analytics engineering workflow.
+This project is a **minimal end-to-end ELT pipeline** designed to demonstrate how external financial data can be ingested, transformed, and exposed for analytics using production-style practices.
 
-Architecture
+The goal is to showcase:
+- clear data layering (RAW → STAGING → MART)
+- version-controlled SQL
+- orchestration with a modern data orchestrator
+
+The implementation closely mirrors a real-world **analytics engineering** workflow.
+
+---
+
+## Architecture
+
+
 External API (CoinGecko)
         |
         v
@@ -23,89 +33,105 @@ BigQuery MART views
         v
 Analytics / BI
 
-Data Layers
-RAW
 
-Stored directly in BigQuery
+---
 
-Data is persisted as received, with minimal normalization
+## Data Layers
 
-Acts as an immutable source of truth
+### RAW
+
+- Stored directly in **:contentReference[oaicite:0]{index=0}**
+- Data is persisted **as received**, with minimal processing
+- Acts as an immutable source of truth for auditing and replay
+
+Example:
+- `raw_coingecko_prices`
+
+---
+
+### STAGING
+
+- Implemented as SQL **views**
+- Responsible for:
+  - type casting
+  - timestamp normalization
+  - basic data cleanup
+- Contains **no business logic**
+
+Example:
+- `stg_coingecko_prices`
+
+---
+
+### MART
+
+- Business-facing analytics layer
+- Contains derived metrics and aggregations
+- Designed to be consumed directly by BI tools or analysts
+
+Example:
+- `mart_daily_prices`
+  - daily close prices
+  - previous close
+  - daily returns (window functions)
+
+---
+
+## Orchestration
+
+The pipeline is orchestrated using **:contentReference[oaicite:1]{index=1}**.
+
+### Pipeline steps
+1. **Ingest RAW data**  
+   - Fetches data from the **:contentReference[oaicite:2]{index=2}** API  
+   - Loads it into BigQuery RAW tables
+
+2. **Apply SQL transformations**  
+   - Executes versioned SQL files
+   - Creates or updates STAGING and MART views in BigQuery
+
+Both steps are executed sequentially as part of a single Dagster job.
+
+---
+
+## Scheduling (Design Only)
+
+In a production setup, this pipeline would be executed **once per day** using a Dagster schedule.
+
+> ⚠️ The schedule is documented here for design completeness but is not deployed as part of this MVP.
 
 Example:
 
-raw_coingecko_prices
-
-STAGING
-
-SQL views
-
-Type casting and basic normalization
-
-No business logic
-
-Example:
-
-stg_coingecko_prices
-
-MART
-
-Business-facing analytics layer
-
-Contains derived metrics (e.g. daily close prices, returns)
-
-Designed to be consumed directly by BI tools or analysts
-
-Example:
-
-mart_daily_prices
-
-Orchestration
-
-The pipeline is orchestrated using Dagster:
-
-ingest_raw → ingests external API data into BigQuery
-
-apply_sql → applies staging and mart SQL definitions
-
-Executed sequentially as a single job
-
-The job can be run locally via the Dagster UI.
-
-Scheduling (Design Only)
-
-In a production environment, this pipeline would be executed once per day using a Dagster schedule.
-
-Example (not deployed in this MVP):
-
+```python
 from dagster import schedule
 
 @schedule(cron_schedule="0 22 * * *", job=crypto_mvp_job)
 def daily_crypto_pipeline():
     return {}
+```
 
 
-This ensures:
+## This ensures:
 
-daily data refresh
+- daily data refresh
 
-reproducible execution
+- reproducible execution
 
-no manual intervention
+- no manual intervention
 
-Tech Stack
+## Tech Stack
 
-Python (API ingestion, orchestration)
+- Python (API ingestion, orchestration)
 
-BigQuery (data warehouse)
+- BigQuery (data warehouse)
 
-SQL (analytics modeling)
+- SQL (analytics modeling)
 
-Dagster (orchestration)
+- Dagster (orchestration)
 
-Git (version control)
+- Git (version control)
 
-How to Run (Local)
+## How to Run (Local)
 
 Activate virtual environment
 
@@ -116,12 +142,12 @@ dagster dev -f orchestration/dagster_job.py
 
 Run the job from the Dagster UI
 
-Notes
+## Notes
 
 This project is intentionally scoped as an MVP:
 
-focuses on clarity over complexity
+- focuses on clarity over complexity
 
-prioritizes production-style structure
+- prioritizes production-style structure
 
-avoids over-engineering
+- avoids over-engineering
