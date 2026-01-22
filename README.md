@@ -16,22 +16,35 @@ The implementation closely mirrors a real-world **analytics engineering** workfl
 ## Architecture
 
 
-External API (CoinGecko)
-        |
-        v
-Python Ingestion (ELT)
-        |
-        v
-BigQuery RAW tables
-        |
-        v
-BigQuery STAGING views
-        |
-        v
-BigQuery MART views
-        |
-        v
-Analytics / BI
+┌──────────────────────────┐
+│  External API (CoinGecko)│
+└─────────────┬────────────┘
+              │
+              ▼
+┌──────────────────────────┐
+│ Python Ingestion (ELT)   │
+└─────────────┬────────────┘
+              │
+              ▼
+┌──────────────────────────┐
+│ BigQuery RAW Tables      │
+└─────────────┬────────────┘
+              │
+              ▼
+┌──────────────────────────┐
+│ BigQuery STAGING Views   │
+└─────────────┬────────────┘
+              │
+              ▼
+┌──────────────────────────┐
+│ BigQuery MART Views      │
+└─────────────┬────────────┘
+              │
+              ▼
+┌──────────────────────────┐
+│ Analytics / BI           │
+└──────────────────────────┘
+
 
 
 ---
