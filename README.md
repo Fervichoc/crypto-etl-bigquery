@@ -1,6 +1,6 @@
-#Crypto Finance Data MVP
+# Crypto Finance Data MVP
 
-##This repository contains a data engineering & analytics MVP focused on ingesting cryptocurrency market data and producing analytics-ready data marts using modern, production-oriented practices.
+This repository contains a data engineering & analytics MVP focused on ingesting cryptocurrency market data and producing analytics-ready data marts using modern, production-oriented practices.
 
 The goal of the project is to demonstrate:
 
