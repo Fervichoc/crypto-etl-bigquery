@@ -1,42 +1,59 @@
 # Crypto Finance Data MVP
 
-This repository contains a data engineering & analytics MVP focused on ingesting cryptocurrency market data and producing analytics-ready data marts using modern, production-oriented practices.
+This repository contains a **data engineering & analytics MVP** focused on ingesting cryptocurrency market data and producing **analytics-ready data marts** using modern, production-oriented practices.
 
-The goal of the project is to demonstrate:
+The project demonstrates:
+- clean separation between ingestion, orchestration, and analytics
+- SQL-based business logic managed as code
+- explicit data quality validation
+- auditable and reproducible transformations
 
-clean separation between ingestion and analytics
+---
 
-SQL-based business logic
+## High-Level Architecture
 
-data quality validation
 
-auditable and reproducible transformations
-## Architecture
 
 ```
 External APIs
-     ↓
-Python Ingestion
-     ↓
-BigQuery (staging tables)
-     ↓
+↓
+Python ingestion
+↓
+Dagster (orchestration)
+↓
+BigQuery (raw & staging)
+↓
 SQLMesh models
-     ↓
+↓
 Analytics-ready data marts
 ```
+
+---
+
+## Orchestration (Dagster)
+
+All workflows are orchestrated using **Dagster**, which acts as the single entrypoint for the pipeline.
+
+Dagster is responsible for:
+- triggering daily ingestion jobs
+- enforcing execution order (ingestion → analytics)
+- running SQLMesh deployments non-interactively
+- surfacing logs and failures in a single UI
+
+The pipeline is defined as a Dagster job and can be executed manually or scheduled.
 
 ---
 
 ## Ingestion & Staging
 
 - Data is ingested from external APIs using **Python**.
-- Raw data is written into **BigQuery staging tables**.
-- Staging tables are intentionally kept close to the source structure, with minimal transformations.
+- Ingestion writes raw data into **BigQuery raw tables**.
+- Staging logic (type casting, timestamp normalization) is implemented as **SQLMesh staging models**.
 
-This layer is responsible only for:
-- data extraction
-- basic typing / normalization
-- reliable loading into BigQuery
+Responsibilities of this layer:
+- extract data
+- normalize types
+- prepare clean staging datasets for analytics
 
 ---
 
@@ -46,34 +63,58 @@ All analytics logic is managed using **SQLMesh**, treating SQL transformations a
 
 ### Models
 
-- Data marts are defined as **SQLMesh models**.
-- Each model represents a business-ready table or view.
-- Models encapsulate all business logic (deduplication, aggregations, window functions, derived metrics).
+- Each analytics table or view is defined as a **SQLMesh model**.
+- Models encapsulate business logic such as:
+  - deduplication
+  - window functions
+  - derived metrics
 
 Example:
-- `dm_daily_prices`: daily close prices per asset and currency, including derived daily returns.
+- `stg_coingecko_prices`: normalized staging view
+- `dm_daily_prices`: daily close prices with daily returns
 
 ### Audits
 
 - **SQLMesh audits** are used to enforce data quality rules.
-- Audits express invalid data conditions in SQL (e.g. nulls, duplicates, invalid values).
-- An audit fails if it returns rows.
+- Audits are SQL queries that return invalid rows.
+- If an audit returns rows, it fails.
 
-Typical checks include:
+Typical checks:
 - non-null critical fields
 - uniqueness constraints
 - valid numeric ranges
 
 ### State & History
 
-- SQLMesh automatically manages:
+- SQLMesh automatically tracks:
   - model versions
   - applied plans
   - deployment metadata
 - State is persisted in a dedicated **BigQuery dataset**.
-- Changes are reviewed via `sqlmesh plan` before execution.
+- Changes are reviewed before execution via `sqlmesh plan`.
 
 ---
+
+## Repository Structure
+
+```
+├── ingestion/ # Python ingestion scripts
+│
+├── warehouse/
+│ └── raw/ # raw BigQuery tables
+│
+├── orchestration/
+│ └── dagster_job.py # Dagster job definition
+│
+├── sqlmesh/
+│ ├── models/ # SQLMesh models (staging + marts)
+│ ├── audits/ # SQLMesh audits
+│ └── .cache/ # local SQLMesh cache (ignored)
+│
+├── config.yaml # SQLMesh configuration (no secrets)
+├── README.md
+└── .gitignore
+```
 
 ---
 
@@ -82,49 +123,62 @@ Typical checks include:
 SQLMesh is configured via `config.yaml`, which is versioned as infrastructure code.
 
 Key points:
-- BigQuery is used as the execution engine.
-- SQL dialect is explicitly set to BigQuery.
-- No credentials are stored in the repository.
+- BigQuery is used as the execution engine
+- SQL dialect is explicitly set to BigQuery
+- No credentials are stored in the repository
 
-Authentication is handled externally via environment variables
+Authentication is handled via environment variables
 (e.g. `GOOGLE_APPLICATION_CREDENTIALS`).
 
 ---
 
 ## Workflow
 
-Typical local workflow:
+### Orchestrated execution (recommended)
+
+Dagster runs the full pipeline:
+
+1. Ingest raw data into BigQuery
+2. Execute SQLMesh deployment
+3. Validate data quality
+
+Internally, Dagster executes:
 
 ```bash
-sqlmesh plan
-sqlmesh apply
+sqlmesh plan --auto-apply
 sqlmesh audit
 ```
 
-- plan shows the impact of changes before execution
+plan --auto-apply:
 
-- apply materializes or updates models
+- computes the deployment plan
 
-- audit validates data quality explicitly
+- applies changes non-interactively (required for orchestration)
 
-This ensures transformations are reviewed, reproducible, and auditable.
+audit:
 
-##Current Scope
+- validates data quality after materialization
+
+## Current Scope
 
 - Single environment (no dev/prod separation yet)
 
-- Focus on correctness, clarity, and production-ready patterns
+- Daily execution via Dagster
 
-- Designed to be easily extended with multiple environments and orchestration
+- SQLMesh-managed staging and analytics layers
 
-Key Takeaway
+- Designed to be easily extended with environments and scheduling
+
+## Key Takeaway
 
 This MVP demonstrates how to:
 
-- separate ingestion from analytics
+- orchestrate data pipelines using Dagster
 
-- manage SQL transformations as code
+- manage SQL-based analytics with SQLMesh
 
-- enforce data quality at the analytics layer
+- treat transformations as auditable, versioned code
+
+- enforce data quality explicitly
 
 - build reliable reporting foundations on BigQuery
