@@ -1,0 +1,11 @@
+default_gateway: bigquery
+
+model_defaults:
+  dialect: bigquery
+
+gateways:
+  bigquery:
+    connection:
+      type: bigquery
+      project: crypto-data-485108
+      location: EU

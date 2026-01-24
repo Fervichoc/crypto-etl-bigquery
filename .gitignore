@@ -4,3 +4,10 @@ __pycache__/
 *.pyc
 .DS_Store
 .vscode/
+logs
+macros
+models
+seeds
+tests
+sqlmesh/.cache
+sqlmesh/models/logs

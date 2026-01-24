@@ -1,4 +1,8 @@
-CREATE OR REPLACE VIEW `crypto-data-485108.cf_mvp.mart_daily_prices` AS
+MODEL (
+  name dm_daily_prices,
+  kind VIEW
+);
+
 WITH daily_last AS (
   SELECT
     coin_id,
@@ -20,13 +24,19 @@ daily AS (
     price AS close_price
   FROM daily_last
   WHERE rn = 1
+),
+with_prev AS (
+  SELECT
+    *,
+    LAG(close_price) OVER (PARTITION BY coin_id, vs_currency ORDER BY price_date) AS prev_close_price
+  FROM daily
 )
 SELECT
   coin_id,
   vs_currency,
   price_date,
   close_price,
-  LAG(close_price) OVER (PARTITION BY coin_id, vs_currency ORDER BY price_date) AS prev_close_price,
-  SAFE_DIVIDE(close_price - LAG(close_price) OVER (PARTITION BY coin_id, vs_currency ORDER BY price_date),
-              LAG(close_price) OVER (PARTITION BY coin_id, vs_currency ORDER BY price_date)) AS daily_return
-FROM daily;
+  prev_close_price,
+  SAFE_DIVIDE(close_price - prev_close_price, prev_close_price) AS daily_return
+FROM with_prev
+ORDER BY coin_id, vs_currency, price_date;

@@ -1,166 +1,130 @@
-# 📊 Crypto Data ELT MVP
+#Crypto Finance Data MVP
 
-## Overview
+##This repository contains a data engineering & analytics MVP focused on ingesting cryptocurrency market data and producing analytics-ready data marts using modern, production-oriented practices.
 
-This project is a **minimal end-to-end ELT pipeline** designed to demonstrate how external financial data can be ingested, transformed, and exposed for analytics using production-style practices.
+The goal of the project is to demonstrate:
 
-The goal is to showcase:
-- clear data layering (RAW → STAGING → MART)
-- version-controlled SQL
-- orchestration with a modern data orchestrator
+clean separation between ingestion and analytics
 
-The implementation closely mirrors a real-world **analytics engineering** workflow.
+SQL-based business logic
 
----
+data quality validation
 
+auditable and reproducible transformations
 ## Architecture
 
 ```
-┌──────────────────────────┐
-│  External API (CoinGecko)│
-└─────────────┬────────────┘
-              │
-              ▼
-┌──────────────────────────┐
-│ Python Ingestion (ELT)   │
-└─────────────┬────────────┘
-              │
-              ▼
-┌──────────────────────────┐
-│ BigQuery RAW Tables      │
-└─────────────┬────────────┘
-              │
-              ▼
-┌──────────────────────────┐
-│ BigQuery STAGING Views   │
-└─────────────┬────────────┘
-              │
-              ▼
-┌──────────────────────────┐
-│ BigQuery MART Views      │
-└─────────────┬────────────┘
-              │
-              ▼
-┌──────────────────────────┐
-│ Analytics / BI           │
-└──────────────────────────┘
+External APIs
+     ↓
+Python Ingestion
+     ↓
+BigQuery (staging tables)
+     ↓
+SQLMesh models
+     ↓
+Analytics-ready data marts
 ```
 
+---
+
+## Ingestion & Staging
+
+- Data is ingested from external APIs using **Python**.
+- Raw data is written into **BigQuery staging tables**.
+- Staging tables are intentionally kept close to the source structure, with minimal transformations.
+
+This layer is responsible only for:
+- data extraction
+- basic typing / normalization
+- reliable loading into BigQuery
 
 ---
 
-## Data Layers
+## Analytics Engineering with SQLMesh
 
-### RAW
+All analytics logic is managed using **SQLMesh**, treating SQL transformations as production code.
 
-- Stored directly in **:contentReference[oaicite:0]{index=0}**
-- Data is persisted **as received**, with minimal processing
-- Acts as an immutable source of truth for auditing and replay
+### Models
+
+- Data marts are defined as **SQLMesh models**.
+- Each model represents a business-ready table or view.
+- Models encapsulate all business logic (deduplication, aggregations, window functions, derived metrics).
 
 Example:
-- `raw_coingecko_prices`
+- `dm_daily_prices`: daily close prices per asset and currency, including derived daily returns.
+
+### Audits
+
+- **SQLMesh audits** are used to enforce data quality rules.
+- Audits express invalid data conditions in SQL (e.g. nulls, duplicates, invalid values).
+- An audit fails if it returns rows.
+
+Typical checks include:
+- non-null critical fields
+- uniqueness constraints
+- valid numeric ranges
+
+### State & History
+
+- SQLMesh automatically manages:
+  - model versions
+  - applied plans
+  - deployment metadata
+- State is persisted in a dedicated **BigQuery dataset**.
+- Changes are reviewed via `sqlmesh plan` before execution.
 
 ---
 
-### STAGING
+---
 
-- Implemented as SQL **views**
-- Responsible for:
-  - type casting
-  - timestamp normalization
-  - basic data cleanup
-- Contains **no business logic**
+## Configuration
 
-Example:
-- `stg_coingecko_prices`
+SQLMesh is configured via `config.yaml`, which is versioned as infrastructure code.
+
+Key points:
+- BigQuery is used as the execution engine.
+- SQL dialect is explicitly set to BigQuery.
+- No credentials are stored in the repository.
+
+Authentication is handled externally via environment variables
+(e.g. `GOOGLE_APPLICATION_CREDENTIALS`).
 
 ---
 
-### MART
+## Workflow
 
-- Business-facing analytics layer
-- Contains derived metrics and aggregations
-- Designed to be consumed directly by BI tools or analysts
+Typical local workflow:
 
-Example:
-- `mart_daily_prices`
-  - daily close prices
-  - previous close
-  - daily returns (window functions)
-
----
-
-## Orchestration
-
-The pipeline is orchestrated using **:contentReference[oaicite:1]{index=1}**.
-
-### Pipeline steps
-1. **Ingest RAW data**  
-   - Fetches data from the **:contentReference[oaicite:2]{index=2}** API  
-   - Loads it into BigQuery RAW tables
-
-2. **Apply SQL transformations**  
-   - Executes versioned SQL files
-   - Creates or updates STAGING and MART views in BigQuery
-
-Both steps are executed sequentially as part of a single Dagster job.
-
----
-
-## Scheduling (Design Only)
-
-In a production setup, this pipeline would be executed **once per day** using a Dagster schedule.
-
-> ⚠️ The schedule is documented here for design completeness but is not deployed as part of this MVP.
-
-Example:
-
-```python
-from dagster import schedule
-
-@schedule(cron_schedule="0 22 * * *", job=crypto_mvp_job)
-def daily_crypto_pipeline():
-    return {}
+```bash
+sqlmesh plan
+sqlmesh apply
+sqlmesh audit
 ```
 
+- plan shows the impact of changes before execution
 
-## This ensures:
+- apply materializes or updates models
 
-- daily data refresh
+- audit validates data quality explicitly
 
-- reproducible execution
+This ensures transformations are reviewed, reproducible, and auditable.
 
-- no manual intervention
+##Current Scope
 
-## Tech Stack
+- Single environment (no dev/prod separation yet)
 
-- Python (API ingestion, orchestration)
+- Focus on correctness, clarity, and production-ready patterns
 
-- BigQuery (data warehouse)
+- Designed to be easily extended with multiple environments and orchestration
 
-- SQL (analytics modeling)
+Key Takeaway
 
-- Dagster (orchestration)
+This MVP demonstrates how to:
 
-- Git (version control)
+- separate ingestion from analytics
 
-## How to Run (Local)
+- manage SQL transformations as code
 
-Activate virtual environment
+- enforce data quality at the analytics layer
 
-Start Dagster:
-
-dagster dev -f orchestration/dagster_job.py
-
-
-Run the job from the Dagster UI
-
-## Notes
-
-This project is intentionally scoped as an MVP:
-
-- focuses on clarity over complexity
-
-- prioritizes production-style structure
-
-- avoids over-engineering
+- build reliable reporting foundations on BigQuery
