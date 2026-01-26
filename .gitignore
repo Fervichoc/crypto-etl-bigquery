@@ -6,7 +6,6 @@ __pycache__/
 .vscode/
 logs
 macros
-models
 seeds
 tests
 sqlmesh/.cache
