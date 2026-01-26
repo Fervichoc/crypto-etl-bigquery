@@ -9,3 +9,4 @@ macros
 seeds
 tests
 sqlmesh/.cache
+audits
