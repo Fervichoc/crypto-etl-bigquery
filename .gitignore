@@ -10,4 +10,3 @@ models
 seeds
 tests
 sqlmesh/.cache
-sqlmesh/models/logs
