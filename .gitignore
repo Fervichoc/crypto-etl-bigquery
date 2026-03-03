@@ -11,3 +11,4 @@ tests
 sqlmesh/.cache
 audits
 legacy_sql
+models

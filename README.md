@@ -100,9 +100,6 @@ Typical checks:
 ```
 ├── ingestion/ # Python ingestion scripts
 │
-├── warehouse/
-│ └── raw/ # raw BigQuery tables
-│
 ├── orchestration/
 │ └── dagster_job.py # Dagster job definition
 │
@@ -111,8 +108,10 @@ Typical checks:
 │ ├── audits/ # SQLMesh audits
 │ └── .cache/ # local SQLMesh cache (ignored)
 │
+├── .env.example
 ├── config.yaml # SQLMesh configuration (no secrets)
 ├── README.md
+├── requirements.txt
 └── .gitignore
 ```
 
