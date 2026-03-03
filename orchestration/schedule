@@ -1,0 +1,22 @@
+from dagster import RunRequest, schedule
+from zoneinfo import ZoneInfo
+
+TZ = ZoneInfo("Europe/Zurich")
+
+@schedule(
+    cron_schedule="0 6 * * *",          # every day at 06:00
+    job_name="dasgter_job.py",         
+    execution_timezone="Europe/Zurich",
+)
+def daily_crypto_mvp_schedule(context):
+    day = context.scheduled_execution_time.astimezone(TZ).date().isoformat()
+
+    return RunRequest(
+        run_key=f"crypto-mvp-{day}",     # <-- prevents duplicates for same day
+        tags={
+            "ingestion_date": day,
+            "pipeline": "crypto_mvp",
+        },
+        
+        run_config={},
+    )
